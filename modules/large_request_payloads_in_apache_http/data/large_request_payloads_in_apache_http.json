@@ -1,0 +1,142 @@
+{
+  "name": "large_request_payloads_in_apache_http",
+  "description": "This incident type refers to situations where the Apache HTTP server receives unusually large request payloads from clients. A request payload is the data that a client sends to the server as part of a request. When the payload is too large, it can cause various issues such as performance degradation, timeouts, and even server crashes. These incidents can affect the availability and reliability of the server, and they need to be addressed promptly to prevent further impact on the system.",
+  "params": [
+    {
+      "name": "APACHE_PORT",
+      "value": ""
+    },
+    {
+      "name": "APACHE_CONFIG_FILE_PATH",
+      "value": ""
+    },
+    {
+      "name": "NETWORK_INTERFACE",
+      "value": ""
+    },
+    {
+      "name": "VIRTUAL_HOST_CONFIG_FILE",
+      "value": ""
+    },
+    {
+      "name": "MAXIMUM_PAYLOAD_SIZE",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Large Request Payloads in Apache HTTP.\nThis incident type refers to situations where the Apache HTTP server receives unusually large request payloads from clients. A request payload is the data that a client sends to the server as part of a request. When the payload is too large, it can cause various issues such as performance degradation, timeouts, and even server crashes. These incidents can affect the availability and reliability of the server, and they need to be addressed promptly to prevent further impact on the system."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if Apache is running"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `systemctl status apache2`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check Apache error logs for any related error"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -n 50 /var/log/apache2/error.log`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the size of incoming HTTP requests"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tcpdump -i ${NETWORK_INTERFACE} port ${APACHE_PORT} -s 0 -A 'tcp[(tcp[12]>>4)*4]=0x47455420' | grep \"Content-Length\"`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Apache configuration file for the maximum allowed request size"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `cat /etc/apache2/apache2.conf | grep \"LimitRequestBody\"`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Apache virtual host configuration file for the maximum allowed request size"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `cat /etc/apache2/sites-available/${VIRTUAL_HOST_CONFIG_FILE} | grep \"LimitRequestBody\"`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Apache HTTP headers for any information about the request"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -I http://localhost:${APACHE_PORT}`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Apache access logs for the incoming request details"
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -n 50 /var/log/apache2/access.log`"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Increase the maximum allowed size for request payloads in the Apache settings."
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_set_max_payload_size($APACHE_CONFIG_FILE_PATH, $MAXIMUM_PAYLOAD_SIZE)"
+    }
+  ]
+}
